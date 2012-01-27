@@ -8,13 +8,13 @@
 Summary:	Test::Block - Specify fine granularity test plans
 Summary(pl.UTF-8):	Test::Block - określanie szczegółowych planów testów
 Name:		perl-Test-Block
-Version:	0.11
-Release:	2
+Version:	0.13
+Release:	1
 # same as perl
 License:	GPL v1+ or Artistic
 Group:		Development/Languages/Perl
 Source0:	http://www.cpan.org/modules/by-module/Test/%{pdir}-%{pnam}-%{version}.tar.gz
-# Source0-md5:	386a722947f2c77f6157d1dea0338e35
+# Source0-md5:	f4e289f7f2a333983f1e4d578d82f5a3
 URL:		http://search.cpan.org/dist/Test-Block/
 BuildRequires:	perl-devel >= 1:5.8.0
 BuildRequires:	rpm-perlprov >= 4.1-13
