@@ -9,7 +9,7 @@ Summary:	Test::Block - Specify fine granularity test plans
 Summary(pl.UTF-8):	Test::Block - określanie szczegółowych planów testów
 Name:		perl-Test-Block
 Version:	0.13
-Release:	2
+Release:	3
 # same as perl
 License:	GPL v1+ or Artistic
 Group:		Development/Languages/Perl
@@ -21,6 +21,7 @@ URL:		http://search.cpan.org/dist/Test-Block/
 BuildRequires:	perl-Module-Build >= 0.38
 BuildRequires:	perl-devel >= 1:5.8.0
 BuildRequires:	rpm-perlprov >= 4.1-13
+BuildRequires:	rpmbuild(macros) >= 1.672
 %if %{with tests}
 BuildRequires:	perl(Test::Builder) >= 0.17
 BuildRequires:	perl-Test-Builder-Tester >= 1.01
@@ -31,7 +32,8 @@ Requires:	perl-base
 BuildArch:	noarch
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
-%define		_noautoreq	perl(Tie::StdScalar)
+# provided by Tie::Scalar (perl-base)
+%define		_noautoreq_perl	Tie::StdScalar
 
 %description
 This module allows you to specify the number of expected tests at a
