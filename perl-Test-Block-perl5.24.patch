@@ -1,0 +1,91 @@
+From cb65aada4214c7ba701e2ea46ba4a17dc12a4025 Mon Sep 17 00:00:00 2001
+From: David Mitchell <davem@iabyn.com>
+Date: Fri, 26 Feb 2016 16:40:30 +0000
+Subject: [PATCH] Make Test-Block work with perl 5.23.8+
+
+In 5.23.8, the order of steps that perl takes when leaving a scope has
+changed. In particular, destructors are now called *before* PL_curcop
+is restored and before the context is popped from the stack.
+
+The net effect of this is that caller() called from a destructor called
+while exiting a scope will see the last line of the exiting scope rather
+than its first line, and may see STOREs still in the call stack that
+were triggered by undoing a locations of a tied variable, that themselves
+trigger destructors.
+---
+ Test-Block-0.13/lib/Test/Block.pm | 16 ++++++++++++++++
+ Test-Block-0.13/t/block.t         | 10 +++++++---
+ 2 files changed, 23 insertions(+), 3 deletions(-)
+
+diff --git a/Test-Block-0.13/lib/Test/Block.pm b/Test-Block-0.13/lib/Test/Block.pm
+index 1598ea7..3e1b029 100644
+--- a/Test-Block-0.13/lib/Test/Block.pm
++++ b/Test-Block-0.13/lib/Test/Block.pm
+@@ -59,6 +59,22 @@ sub DESTROY {
+     my $name = $self->{name};
+     my $tests_ran = _tests_run_in_block($self);
+     $name = "'$name'" unless looks_like_number( $name );
++
++    # In perl 5.23.7 and earlier, the call stack at this point looks like:
++    #
++    #     Test::Block::DESTROY(...)     called at test_script line NNN
++    #     eval {...}                    called at test_script line NNN
++    #
++    # in perl 5.23.8 and later, like:
++    #
++    #     Test::Block::DESTROY(...)     called at Tie/Scalar.pm line 157
++    #     eval {...}                    called at Tie/Scalar.pm line 157
++    #     Tie::StdScalar::STORE(...)    called at Test/Block.pm line 96
++    #     Test::Block::Plan::STORE(...) called at test_script line NNN
++    #
++    local $Test::Builder::Level =
++        $Test::Builder::Level + ($] >= 5.023008 ? 3 : 0);
++
+     $Test_builder->ok(
+         0, 
+         "block $name expected $expected test(s) and ran $tests_ran"
+diff --git a/Test-Block-0.13/t/block.t b/Test-Block-0.13/t/block.t
+index fbf8469..4a9f814 100644
+--- a/Test-Block-0.13/t/block.t
++++ b/Test-Block-0.13/t/block.t
+@@ -4,6 +4,10 @@ use Test::Builder::Tester tests => 6;
+ use Test::More;
+ use Test::Block;
+ 
++# in perl 5.23.8 and later, caller() in a destructor called while
++# exiting a block shows the last line of the block, not the first
++my $lastl = $] >= 5.023008;
++
+ test_out('ok 1');
+ {
+ 	my $block = Test::Block->plan(1);
+@@ -14,7 +18,7 @@ test_test("count okay");
+ 
+ test_out('ok 1');
+ test_out('not ok 2 - block 2 expected 2 test(s) and ran 1');
+-test_fail(+2);
++test_fail($lastl ? +3 : +2);
+ {
+ 	my $block = Test::Block->plan(2);
+ 	ok(1);
+@@ -25,7 +29,7 @@ test_test("too few tests");
+ test_out('ok 1');
+ test_out('ok 2');
+ test_out('not ok 3 - block 3 expected 1 test(s) and ran 2');
+-test_fail(+2);
++test_fail($lastl ? +4 : +2);
+ {
+ 	my $block = Test::Block->plan(1);
+ 	ok(1);
+@@ -57,7 +61,7 @@ test_test("nested blocks");
+ 
+ test_out('ok 1');
+ test_out("not ok 2 - block 'foo' expected 2 test(s) and ran 1");
+-test_fail(+2);
++test_fail($lastl ? +3 : +2);
+ {
+ 	my $block = Test::Block->plan(foo => 2);
+ 	ok(1);
+-- 
+2.4.3
+
